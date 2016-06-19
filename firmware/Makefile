@@ -1,18 +1,25 @@
+# Always use bash.
 SHELL := /bin/bash
 
-# The name of your project (used to name the compiled .hex file)
+# The name of your project (the .ino file / folder name)
 TARGET = firmware
 
 # Path to your arduino installation
 ARDUINOPATH ?= ../../arduino-1.6.9
-ARDUINOEXEC ?= $(ARDUINOPATH)/arduino
 
+# which board to target
+# arduino:avr:uno for normal UNO.
+# arduino:sam:arduino_due_x for Arduino DUE
 BOARD = arduino:avr:uno
-# BOARD = arduino:sam:arduino_due_x # for DUE
 
-PORT = /dev/ttyUSB0
+# Use PORT environment variable if it exists, otherwise use this.
+PORT ?= /dev/ttyUSB0
 
+# Additional flags to pass to the build & upload.
 EXTRAFLAGS = --verbose-build
+
+# Create path to the arduino executable.
+ARDUINOEXEC = $(ARDUINOPATH)/arduino
 
 all:
 	$(ARDUINOEXEC) $(EXTRAFLAGS) --board $(BOARD) --port $(PORT) --upload $(TARGET).ino
