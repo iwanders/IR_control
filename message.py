@@ -80,11 +80,11 @@ IR_type_t = namedtuple("IR_type", ["UNKNOWN",
                                    "DENON",
                                    "PRONTO"])
 # can do IR_type.PANASONIC or IR_type.SAMSUNG now.
-IR_type = IR_type_t(*range(-1, len(IR_type_t._fields)-1))
+IR_type = IR_type_t(*([255] + list(range(0, len(IR_type_t._fields)-1))))
 # Reverse lookup for IR type, that is id->name
-IR_type_name = dict((k-1, v) for k, v in enumerate(IR_type_t._fields))
+IR_type_name = dict((v[0], v[1]) for v in IR_type._asdict().items())
 # Reverse lookup for IR type, that is name->id
-IR_type_id = dict((k, v-1) for v, k in enumerate(IR_type_t._fields))
+IR_type_id = dict((v[1], v[0]) for v in IR_type._asdict().items())
 
 # create an IR type for easy definition of IR codes
 IR = namedtuple("IR", ["type", "bits", "value"])
@@ -156,17 +156,17 @@ class Dictionary:
 # Structs for the various parts in the firmware. These correspond to
 # the structures as defined in the header files.
 class MsgStatus(ctypes.LittleEndianStructure, Dictionary):
-    _pack_ = 1
+    # _pack_ = 1
     _fields_ = [("uptime", ctypes.c_uint32)]
 
 
 class MsgConfig(ctypes.LittleEndianStructure, Dictionary):
-    _pack_ = 1
+    # _pack_ = 1
     _fields_ = [("serial_receive_timeout", ctypes.c_uint16)]
 
 
 class MsgIRSpecification(ctypes.LittleEndianStructure, Dictionary):
-    _pack_ = 1
+    # _pack_ = 1
     _fields_ = [("type", ctypes.c_uint8),
                 ("bits", ctypes.c_uint8),
                 ("value", ctypes.c_uint32)]
@@ -182,20 +182,18 @@ class MsgIRSpecification(ctypes.LittleEndianStructure, Dictionary):
 
 # create the composite message.
 class _MsgBody(ctypes.Union):
-    _pack_ = 1
     _fields_ = [("config", MsgConfig),
                 ("status", MsgStatus),
                 ("ir_specification", MsgIRSpecification),
-                ("raw", ctypes.c_byte * (PACKET_SIZE-2))]
+                ("raw", ctypes.c_byte * (PACKET_SIZE-1))]
 
 #############################################################################
 
 
 # Class which represents all messages. That is; it holds all the structs.
 class Msg(ctypes.LittleEndianStructure, Readable):
-    _pack_ = 1
     type = msg_type
-    _fields_ = [("msg_type", ctypes.c_uint16),
+    _fields_ = [("msg_type", ctypes.c_uint8),
                 ("_body", _MsgBody)]
     _anonymous_ = ["_body"]
 
@@ -241,3 +239,7 @@ class Msg(ctypes.LittleEndianStructure, Readable):
                 setattr(self, k, v)
             else:
                 setattr(self, k, set_value)
+
+if __name__ == "__main__":
+    print("Msg: {}".format(ctypes.sizeof(Msg)))
+    print("MsgIRSpecification: {}".format(ctypes.sizeof(MsgIRSpecification)))

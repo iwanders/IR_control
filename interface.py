@@ -105,7 +105,8 @@ class SerialInterface(threading.Thread):  # Also known as 'SerialMan!'.
                     msg = message.Msg.read(buffer)
                     self.rx.put_nowait(msg)
                 else:
-                    logging.warn("Received incomplete packet, discarded.")
+                    logging.warn("Received incomplete packet "
+                                 " discarded ({}).".format(buffer))
         except (serial.SerialException, OSError) as e:
             self.ser.close()
             self.ser = None

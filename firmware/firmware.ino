@@ -59,6 +59,8 @@ void setup() {
   irrecv.blink13(1);  // enable led blink on receive.
   irrecv.enableIRIn();  // Start the receiver.
   Serial.setTimeout(serial_receive_timeout_);  // Set the readBytes timeout.
+  DBG("Sizeof(msg_t): "); DBGln(sizeof(msg_t));
+  DBG("Sizeof(msg_ir_t): "); DBGln(sizeof(msg_ir_t));
 }
 
 
@@ -157,7 +159,11 @@ void sendReceivedIR(decode_results *results) {
   char buffer[sizeof(msg_t)] = {0};
   msg_t* response = reinterpret_cast<msg_t*>(buffer);
   response->type = action_IR_received;
-
+  DBG("IR code: ");
+  DBG("type: "); DBG(results->decode_type);
+  DBG("bits: "); DBG(results->bits);
+  DBG("value: "); DBG(results->value);
+  DBGln();
   response->ir_specification.type = results->decode_type;
   response->ir_specification.bits = results->bits;
   response->ir_specification.value = results->value;

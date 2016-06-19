@@ -157,7 +157,7 @@ if __name__ == "__main__":
     parser.add_argument('--serial', '-s', help="The serial port to use.",
                         default="/dev/ttyUSB0")
     parser.add_argument('--baudrate', '-r', help="The badurate for the port.",
-                        default=9600)
+                        default=9600, type=int)
     parser.add_argument('--tcpport', '-p', help="The port used for the tcp"
                         " socket.",
                         default=9999)
