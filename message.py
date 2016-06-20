@@ -80,11 +80,11 @@ IR_type_t = namedtuple("IR_type", ["UNKNOWN",
                                    "DENON",
                                    "PRONTO"])
 # can do IR_type.PANASONIC or IR_type.SAMSUNG now.
-IR_type = IR_type_t(*([255] + list(range(0, len(IR_type_t._fields)-1))))
+IR_type = IR_type_t(*([2**16-1] + list(range(0, len(IR_type_t._fields)-1))))
 # Reverse lookup for IR type, that is id->name
-IR_type_name = dict((v[0], v[1]) for v in IR_type._asdict().items())
+IR_type_name = dict((v[1], v[0]) for v in IR_type._asdict().items())
 # Reverse lookup for IR type, that is name->id
-IR_type_id = dict((v[1], v[0]) for v in IR_type._asdict().items())
+IR_type_id = dict((v[0], v[1]) for v in IR_type._asdict().items())
 
 # create an IR type for easy definition of IR codes
 IR = namedtuple("IR", ["type", "bits", "value"])
@@ -156,17 +156,17 @@ class Dictionary:
 # Structs for the various parts in the firmware. These correspond to
 # the structures as defined in the header files.
 class MsgStatus(ctypes.LittleEndianStructure, Dictionary):
-    # _pack_ = 1
+    _pack_ = 1
     _fields_ = [("uptime", ctypes.c_uint32)]
 
 
 class MsgConfig(ctypes.LittleEndianStructure, Dictionary):
-    # _pack_ = 1
+    _pack_ = 1
     _fields_ = [("serial_receive_timeout", ctypes.c_uint16)]
 
 
 class MsgIRSpecification(ctypes.LittleEndianStructure, Dictionary):
-    # _pack_ = 1
+    _pack_ = 1
     _fields_ = [("type", ctypes.c_uint8),
                 ("bits", ctypes.c_uint8),
                 ("value", ctypes.c_uint32)]
@@ -185,7 +185,7 @@ class _MsgBody(ctypes.Union):
     _fields_ = [("config", MsgConfig),
                 ("status", MsgStatus),
                 ("ir_specification", MsgIRSpecification),
-                ("raw", ctypes.c_byte * (PACKET_SIZE-1))]
+                ("raw", ctypes.c_byte * (PACKET_SIZE-2))]
 
 #############################################################################
 
@@ -193,7 +193,8 @@ class _MsgBody(ctypes.Union):
 # Class which represents all messages. That is; it holds all the structs.
 class Msg(ctypes.LittleEndianStructure, Readable):
     type = msg_type
-    _fields_ = [("msg_type", ctypes.c_uint8),
+    _pack_ = 1
+    _fields_ = [("msg_type", ctypes.c_uint16),
                 ("_body", _MsgBody)]
     _anonymous_ = ["_body"]
 
@@ -243,3 +244,10 @@ class Msg(ctypes.LittleEndianStructure, Readable):
 if __name__ == "__main__":
     print("Msg: {}".format(ctypes.sizeof(Msg)))
     print("MsgIRSpecification: {}".format(ctypes.sizeof(MsgIRSpecification)))
+
+    msg = Msg()
+    msg.msg_type = msg.type.action_IR_received
+    msg.ir_specification.type = 0x1F
+    msg.ir_specification.bits = 0x2F
+    msg.ir_specification.value = 0x01020304
+    print(bytes(msg))
