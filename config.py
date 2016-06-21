@@ -1,80 +1,87 @@
+from message import IR
 """
-    Maps IR code names to the actual values.
+    Maps IR codes to names, when receiving, several codes can point to the same
+    name. Sending to a name with multiple ir codes associated to it sends one
+    ir code only, which one is not really defined.
 
-    ir_mapping = {
+
+    ir_codes = {
         "tv":{
-            "standby":dict(type="SAMSUNG", bits=32, value=0xAA),
-            "standby_true":dict(type="SAMSUNG", bits=32, value=0xBB)
+            IR(type="SAMSUNG", bits=32, value=0xAA):"standby"
+            IR(type="SAMSUNG", bits=32, value=0xDD):"standby"
+            IR(type="SAMSUNG", bits=32, value=0xBB):"standby_true"
         },
-        "foobar":dict(type="SAMSUNG", bits=32, value=0xEE),
+        IR(type="SAMSUNG", bits=32, value=0xEE):"foobar",
     }
     Additional depth created by more dicationaries is separated by underscores:
-        sending ir_name "tv_standby" will result in 0xAA.
+        sending ir_name "tv_standby" is not defined.
         sending ir_name "tv_standby_true" will result in 0xBB.
         sending ir_name "foobar" will result in 0xEE.
+    Both IR(type="SAMSUNG", bits=32, value=0xAA) and
+         IR(type="SAMSUNG", bits=32, value=0xDD) will result in "tv_standby".
 """
-ir_mapping = {
+ir_codes = {
     "samsung":{
         "tv":{
-            "standby":dict(type="SAMSUNG", bits=32, value=0xE0E040BF),
-            "source":dict(type="SAMSUNG", bits=32, value=0xE0E0807F),
-            "key_1":dict(type="SAMSUNG", bits=32, value=0xE0E020DF),
-            "key_2":dict(type="SAMSUNG", bits=32, value=0xE0E0A05F),
-            "key_3":dict(type="SAMSUNG", bits=32, value=0xE0E0609F),
-            "key_4":dict(type="SAMSUNG", bits=32, value=0xE0E010EF),
-            "key_5":dict(type="SAMSUNG", bits=32, value=0xE0E0906F),
-            "key_6":dict(type="SAMSUNG", bits=32, value=0xE0E050AF),
-            "key_7":dict(type="SAMSUNG", bits=32, value=0xE0E030CF),
-            "key_8":dict(type="SAMSUNG", bits=32, value=0xE0E0B04F),
-            "key_9":dict(type="SAMSUNG", bits=32, value=0xE0E0708F),
-            "key_0":dict(type="SAMSUNG", bits=32, value=0xE0E08877),
-            "ttx":dict(type="SAMSUNG", bits=32, value=0xE0E034CB),
-            "mute":dict(type="SAMSUNG", bits=32, value=0xE0E0F00F),
-            "prech":dict(type="SAMSUNG", bits=32, value=0xE0E0C837),
-            "chlist":dict(type="SAMSUNG", bits=32, value=0xE0E0D629),
-            "red":dict(type="SAMSUNG", bits=32, value=0xE0E036C9),
-            "green":dict(type="SAMSUNG", bits=32, value=0xE0E028D7),
-            "yellow":dict(type="SAMSUNG", bits=32, value=0xE0E0A857),
-            "blue":dict(type="SAMSUNG", bits=32, value=0xE0E06897),
-            "volup":dict(type="SAMSUNG", bits=32, value=0xE0E0E01F),
-            "voldown":dict(type="SAMSUNG", bits=32, value=0xE0E0D02F),
-            "chanup":dict(type="SAMSUNG", bits=32, value=0xE0E048B7),
-            "chandown":dict(type="SAMSUNG", bits=32, value=0xE0E008F7),
-            "menu":dict(type="SAMSUNG", bits=32, value=0xE0E058A7),
-            "media":dict(type="SAMSUNG", bits=32, value=0xE0E031CE),
-            "guide":dict(type="SAMSUNG", bits=32, value=0xE0E0F20D),
-            "tools":dict(type="SAMSUNG", bits=32, value=0xE0E0D22D),
-            "info":dict(type="SAMSUNG", bits=32, value=0xE0E0F807),
-            "up":dict(type="SAMSUNG", bits=32, value=0xE0E006F9),
-            "right":dict(type="SAMSUNG", bits=32, value=0xE0E046B9),
-            "left":dict(type="SAMSUNG", bits=32, value=0xE0E0A659),
-            "down":dict(type="SAMSUNG", bits=32, value=0xE0E08679),
-            "enter":dict(type="SAMSUNG", bits=32, value=0xE0E016E9),
-            "return":dict(type="SAMSUNG", bits=32, value=0xE0E01AE5),
-            "exit":dict(type="SAMSUNG", bits=32, value=0xE0E0B44B),
-            "emanual":dict(type="SAMSUNG", bits=32, value=0xE0E0FC03),
-            "picsize":dict(type="SAMSUNG", bits=32, value=0xE0E07C83),
-            "subt":dict(type="SAMSUNG", bits=32, value=0xE0E0A45B),
-            "stop":dict(type="SAMSUNG", bits=32, value=0xE0E0629D),
-            "forward":dict(type="SAMSUNG", bits=32, value=0xE0E012ED),
-            "backward":dict(type="SAMSUNG", bits=32, value=0xE0E0A25D),
-            "play":dict(type="SAMSUNG", bits=32, value=0xE0E0E21D),
-            "pause":dict(type="SAMSUNG", bits=32, value=0xE0E052AD),
+            IR(type="SAMSUNG", bits=32, value=0xE0E040BF):"standby",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0807F):"source",
+            IR(type="SAMSUNG", bits=32, value=0xE0E020DF):"key_1",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0A05F):"key_2",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0609F):"key_3",
+            IR(type="SAMSUNG", bits=32, value=0xE0E010EF):"key_4",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0906F):"key_5",
+            IR(type="SAMSUNG", bits=32, value=0xE0E050AF):"key_6",
+            IR(type="SAMSUNG", bits=32, value=0xE0E030CF):"key_7",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0B04F):"key_8",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0708F):"key_9",
+            IR(type="SAMSUNG", bits=32, value=0xE0E08877):"key_0",
+            IR(type="SAMSUNG", bits=32, value=0xE0E034CB):"ttx",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0F00F):"mute",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0C837):"prech",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0D629):"chlist",
+            IR(type="SAMSUNG", bits=32, value=0xE0E036C9):"red",
+            IR(type="SAMSUNG", bits=32, value=0xE0E028D7):"green",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0A857):"yellow",
+            IR(type="SAMSUNG", bits=32, value=0xE0E06897):"blue",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0E01F):"volup",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0D02F):"voldown",
+            IR(type="SAMSUNG", bits=32, value=0xE0E048B7):"chanup",
+            IR(type="SAMSUNG", bits=32, value=0xE0E008F7):"chandown",
+            IR(type="SAMSUNG", bits=32, value=0xE0E058A7):"menu",
+            IR(type="SAMSUNG", bits=32, value=0xE0E031CE):"media",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0F20D):"guide",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0D22D):"tools",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0F807):"info",
+            IR(type="SAMSUNG", bits=32, value=0xE0E006F9):"up",
+            IR(type="SAMSUNG", bits=32, value=0xE0E046B9):"right",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0A659):"left",
+            IR(type="SAMSUNG", bits=32, value=0xE0E08679):"down",
+            IR(type="SAMSUNG", bits=32, value=0xE0E016E9):"enter",
+            IR(type="SAMSUNG", bits=32, value=0xE0E01AE5):"return",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0B44B):"exit",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0FC03):"emanual",
+            IR(type="SAMSUNG", bits=32, value=0xE0E07C83):"picsize",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0A45B):"subt",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0629D):"stop",
+            IR(type="SAMSUNG", bits=32, value=0xE0E012ED):"forward",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0A25D):"backward",
+            IR(type="SAMSUNG", bits=32, value=0xE0E0E21D):"play",
+            IR(type="SAMSUNG", bits=32, value=0xE0E052AD):"pause",
         },
     },
-    "foobar":dict(type="SAMSUNG", bits=32, value=0xE0E04F),
+    IR(type="SAMSUNG", bits=32, value=0xE0E04F):"foobar",
     "multi":{
         "tv":{
         
-               "green":dict(type="NEC", bits=32, value=0x20DF8E71),
-               "red":dict(type="NEC", bits=32, value=0x20DF4EB1),
-               "blue":dict(type="NEC", bits=32, value=0x20DF8679),
-               "yellow":dict(type="NEC", bits=32, value=0x20DFC639),
-               "standby":dict(type="NEC", bits=32, value=0x20DF10EF),
+               IR(type="NEC", bits=32, value=0x20DF8E71):"green",
+               IR(type="NEC", bits=32, value=0x20DF4EB1):"red",
+               IR(type="NEC", bits=32, value=0x20DF8679):"blue",
+               IR(type="NEC", bits=32, value=0x20DFC639):"yellow",
+               IR(type="NEC", bits=32, value=0x20DF10EF):"standby",
             },
         "amp":{
-               "volup":dict(type="SONY", bits=12, value=0x00000481),
-               "voldown":dict(type="SONY", bits=12, value=0x00000C81)
+               IR(type="SONY", bits=12, value=0x00000481):"volup",
+               IR(type="SONY", bits=12, value=0x00000C81):"voldown"
         }
     }
 }
@@ -103,3 +110,4 @@ ir_actions = {
     "samsung_tv_volup": dict(type="ir_send", ir_name="multi_amp_volup"),
     "samsung_tv_voldown": dict(type="ir_send", ir_name="multi_amp_voldown"),
 }
+

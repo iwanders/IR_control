@@ -24,49 +24,30 @@
 
 from interface import SerialInterface
 import message
-import config
 
 import socketserver
 import argparse
 import threading
 import time
 import logging
+
 import subprocess  # for shell action
 import requests  # for geturl action
+import config  # loads the configuration from the config file.
 
-
-logger = logging.getLogger("IR_Control")
 
 class IR_Control:
     def __init__(self, interface, serial_port, baudrate):
         self.i = interface
         self.serial_port = serial_port
         self.baudrate = baudrate
-        self.process_config()
-
-    # tries to send a IR code for the name provided
-    def sendIR(self, ir_name):
-        # check if it is available:
-        if (ir_name in self.ir_entries):
-            ir_code = self.ir_entries[ir_name]
-            logger.debug("sending {}: {}".format(ir_name, ir_code))
-            # create the message
-            msg = message.Msg()
-            msg.msg_type = msg.type.action_IR_send
-            try:
-                msg.ir_specification.from_dict(ir_code.raw())
-            except TypeError as e:
-                logger.error("Conversion went wrong: {} ".format(str(e)))
-            # put the message on the queue
-            self.i.put_message(msg)
-        else:
-            logger.error("Could not find {} to send.".format(ir_name))
+        self.log = logging.getLogger("IR_Control")
 
     # blocks reading from serial port and acting appropriately.
     def loop(self):
         while(True):
             if (not self.i.is_serial_connected()):
-                logger.error("No serial port!")
+                self.log.error("No serial port!")
                 self.i.connect(self.serial_port, self.baudrate)
                 time.sleep(1)
             a = self.i.get_message()
@@ -75,73 +56,128 @@ class IR_Control:
             else:
                 time.sleep(0.001)
 
-    # handles incomming commands from TCP or somethign else:
-    def incoming_cmd(self, cmd):
-        cmd = str(cmd, 'ascii')
-        # at the moment we just pass this along to the sendIR command
-        self.sendIR(cmd)
-
+    # processes received messages from serial
     def received_serial(self, msg):
         # receives messages from the interface.
         if (msg.msg_type == msg.type.action_IR_received):
             # convert it into a ir_message
-            ir_msg = message.IR(**dict(msg.ir_specification))
-            if (ir_msg.tuple() in self.ir_reverse):
-                # if it is in the list, convert to ir_name
-                ir_name = self.ir_reverse[ir_msg.tuple()]
-                logger.debug("IR name known: {}".format(ir_name))
-                # try to perform the action:
-                self.perform_action(ir_name)
-            else:
-                logger.debug("IR code not known: {}".format(msg.ir_specification))
+            ir_code = message.IR(**dict(msg.ir_specification))
+            self.ir_received(ir_code)
 
-    def process_config(self):
-        entries = {}
+    # sends a message over the serial port
+    def send_serial(self, msg):
+        self.i.put_message(msg)
 
-        # recursive function to walk over the configuration.
+    # send an IR code with the hardware.
+    def send_ir(self, ir_code):
+        self.log.debug("sending ir {}".format(ir_code))
+        # create the message
+        msg = message.Msg()
+        msg.msg_type = msg.type.action_IR_send
+        try:
+            msg.ir_specification.from_dict(ir_code.raw())
+        except TypeError as e:
+            self.log.error("Conversion failed: {} ".format(str(e)))
+        self.send_serial(msg)
+
+    # This method is called when an IR code is received from the serial port.
+    def ir_received(self, ir_code):
+        raise NotImplementedError("Subclass should implement this.")
+
+
+# This object actually deals with the interaction and configuration file
+# it is up to you to change this to suit your needs... or use this and modify
+# the configuration file.
+class Interactor(IR_Control):
+    def __init__(self, *args, **kwargs):
+        super(Interactor, self).__init__(*args, **kwargs)
+        self.load_config()
+        self.log = logging.getLogger("Interactor")
+
+    # load the config, and convert it into the code and name lookup lists.
+    def load_config(self):
+        by_name = {}
+        by_code = {}
+
+        # recursive function to walk over the configuration and flatten it.
         def R(d, *args):
             for j in d:
-                if (type(d[j]) == dict and ("value" in d[j])):
-                    entries["_".join(list(args[::-1]) + [j])] = message.IR(**d[j])
+                if (type(j) != str):
+                    by_name["_".join(list(args[::-1]) + [d[j]])] = j.tuple()
+                    by_code[j.tuple()] = "_".join(list(args[::-1]) + [d[j]])
                 else:
                     R(d[j], j, *args)
-        R(config.ir_mapping)
+        R(config.ir_codes)
 
-        self.ir_entries = entries
-        self.ir_reverse = dict((k.tuple(), v) for v, k in
-                               self.ir_entries.items())
+        # store lookup for name -> ir_code and ir_code -> name.
+        self.ir_by_name = by_name
+        self.ir_by_code = by_code
 
+        # store actions per name.
         self.ir_actions = config.ir_actions
 
+    # called when an ir code is received from the serial port.
+    def ir_received(self, ir_code):
+        if (ir_code.tuple() in self.ir_by_code):
+            # if it is in the list, convert to ir_name
+            ir_name = self.ir_by_code[ir_code.tuple()]
+            self.log.debug("IR name known: {}".format(ir_name))
+            # try to perform the action:
+            self.perform_action(ir_name)
+        else:
+            self.log.debug("IR code not known: {}".format(
+                           ir_code))
+
+    # When an IR code is received and we have a name for this, this performs
+    # the action associated to that name.
     def perform_action(self, action_name):
         if (action_name not in self.ir_actions):
             return
         action = self.ir_actions[action_name]
 
-        logger.info("Action {}".format(action))
+        self.log.info("Action {}".format(action))
 
-        # perform the shell action
+        # the shell action; call it non blocking catch all errors
         if (action["type"] == "shell"):
-            try:
-                subprocess.Popen(action["call"], shell=True)
-            except Exception as e:
-                logger.debug("Error: {}".format(str(e)))
+            def quietly_call(*arg):
+                try:
+                    subprocess.Popen(*arg, shell=True)
+                except Exception as e:
+                    self.log.warn("Error: {}".format(str(e)))
+            threading.Timer(0, quietly_call, [action["call"]]).start()
 
+        # GET method on an url.
         if (action["type"] == "get_url"):
             def quietly_get(args):
                 try:
                     res = requests.get(*args)
                 except Exception as e:
-                    logger.debug("Error: {}".format(str(e)))
+                    self.log.warn("Error: {}".format(str(e)))
             # call it in a non-blocking manner...
             threading.Timer(0, quietly_get, [action["arguments"]]).start()
+
+        # send another IR command.
         if (action["type"] == "ir_send"):
-             self.sendIR(action["ir_name"])
+            self.send_ir_by_name(action["ir_name"])
+
+    # send an IR code by name.
+    def send_ir_by_name(self, name):
+        if name in self.ir_by_name:
+            self.send_ir(self.ir_by_name[name])
+        else:
+            self.log.warn("Tried to send unknown {} ir code".format(name))
+
+    # this method is called when something is passed via the TCP socket.
+    def incoming_external_command(self, cmd):
+        cmd = str(cmd, 'ascii')
+        self.log.debug("Incoming command: {}".format(cmd))
+        self.send_ir_by_name(cmd)
+
 
 class TCPCommandHandler(socketserver.StreamRequestHandler):
     def handle(self):
         data = self.request.recv(1024).strip()
-        self.server.mcu_manager_.incoming_cmd(data)
+        self.server.mcu_manager_.incoming_external_command(data)
         self.finish()
 
 
@@ -151,49 +187,56 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 
 if __name__ == "__main__":
-    # Create a simple commandline interface.
 
     parser = argparse.ArgumentParser(description="Control MCU at serial port.")
     parser.add_argument('--serial', '-s', help="The serial port to use.",
                         default="/dev/ttyUSB0")
     parser.add_argument('--baudrate', '-r', help="The badurate for the port.",
                         default=9600, type=int)
+    parser.add_argument('--verbose', '-v', help="Print all communication.",
+                        action="store_true", default=False)
+
     parser.add_argument('--tcpport', '-p', help="The port used for the tcp"
                         " socket.",
                         default=9999)
     parser.add_argument('--tcphost', '-b', help="The host/ip on which to bind"
                         " the tcp socket receiving the IR commands.",
                         default="127.0.0.1")
-    parser.add_argument('--verbose', '-v', help="Print all communication.",
-                        action="store_true", default=False)
+
     # parse the arguments.
     args = parser.parse_args()
 
     # start the serial interface
     a = SerialInterface(packet_size=message.PACKET_SIZE)
-    # a.connect(serial_port=args.serial, baudrate=args.baudrate)
+    a.connect(serial_port=args.serial, baudrate=args.baudrate)
     a.start()  # start the interface
 
-    interface_logger = logging.getLogger("interface")
-    interface_logger.setLevel(logging.DEBUG)
-
+    # pretty elaborate logging...
+    logger_interface = logging.getLogger("interface")
+    logger_IR_control = logging.getLogger("IR_control")
+    logger_interactor = logging.getLogger("Interactor")
     if (args.verbose):
-        logger.setLevel(logging.DEBUG)
+        logger_interface.setLevel(logging.DEBUG)
+        logger_IR_control.setLevel(logging.DEBUG)
+        logger_interactor.setLevel(logging.DEBUG)
     else:
-        logger.setLevel(logging.INFO)
+        logger_interactor.setLevel(logging.WARN)
+        logger_interface.setLevel(logging.WARN)
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(name)s - %(asctime)s - %(levelname)s'
                                   ' - %(message)s')
     ch.setFormatter(formatter)
-    interface_logger.addHandler(ch)
-    logger.addHandler(ch)
+    logger_interface.addHandler(ch)
+    logger_IR_control.addHandler(ch)
+    logger_interactor.addHandler(ch)
 
-    # start the IR_Control 'glue' object.
-    m = IR_Control(a, serial_port=args.serial, baudrate=args.baudrate)
+    # start the Interactor 'glue' object.
+    m = Interactor(a, serial_port=args.serial, baudrate=args.baudrate)
 
-    # start the TCP server to listen for instructions.
+    # This is only for the TCP server to facilitate sending IR codes from the
+    # terminal easily.
     server = ThreadedTCPServer((args.tcphost, args.tcpport), TCPCommandHandler)
     server.setManager(m)
     server_thread = threading.Thread(target=server.serve_forever)
