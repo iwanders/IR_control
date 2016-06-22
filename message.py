@@ -90,21 +90,24 @@ IR_type_id = dict((v[0], v[1]) for v in IR_type._asdict().items())
 IR = namedtuple("IR", ["type", "bits", "value"])
 
 
-# add this method for convenience.
+# add these methods for convenience.
 def mapping_to_raw(self):
-    return {"type": IR_type_id[self.type],
+    return {"type": IR_type_id.get(self.type, self.type),  # get type as int.
             "bits": self.bits,
             "value": self.value}
 
 
+def ir_print(self):
+    return 'IR(type={}, bits={}, value=0x{:0>8X})'.format(
+        repr(IR_type_name.get(self.type, self.type)), self.bits, self.value)
+
+
 def to_tuple(self):
-    if (type(self.type) == str):
-        realtype = IR_type_id[self.type]
-    else:
-        realtype = self.type
-    return (realtype, self.bits, self.value)
+    return (IR_type_id.get(self.type, self.type), self.bits, self.value)
+
 IR.raw = mapping_to_raw
 IR.tuple = to_tuple
+IR.__str__ = ir_print
 
 
 #############################################################################
@@ -251,3 +254,11 @@ if __name__ == "__main__":
     msg.ir_specification.bits = 0x2F
     msg.ir_specification.value = 0x01020304
     print(bytes(msg))
+
+    a = IR(type="SAMSUNG", bits=32, value=0xE0E040BF)
+    print(a)
+    print(str(a))
+    print(a.raw())
+    atuple = a.tuple()
+    print(atuple)
+    print(IR(*atuple))

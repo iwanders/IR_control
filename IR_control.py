@@ -103,7 +103,7 @@ class Interactor(IR_Control):
         def R(d, *args):
             for j in d:
                 if (type(j) != str):
-                    by_name["_".join(list(args[::-1]) + [d[j]])] = j.tuple()
+                    by_name["_".join(list(args[::-1]) + [d[j]])] = j
                     by_code[j.tuple()] = "_".join(list(args[::-1]) + [d[j]])
                 else:
                     R(d[j], j, *args)
