@@ -142,7 +142,7 @@ class Interactor(IR_Control):
             def quietly_call(*arg):
                 try:
                     subprocess.Popen(*arg, shell=True)
-                except Exception as e:
+                except (OSError, ValueError) as e:
                     self.log.warn("Error: {}".format(str(e)))
             threading.Timer(0, quietly_call, [action["call"]]).start()
 
@@ -151,7 +151,7 @@ class Interactor(IR_Control):
             def quietly_get(args):
                 try:
                     res = requests.get(*args)
-                except Exception as e:
+                except requests.exceptions.RequestException as e:
                     self.log.warn("Error: {}".format(str(e)))
             # call it in a non-blocking manner...
             threading.Timer(0, quietly_get, [action["arguments"]]).start()
