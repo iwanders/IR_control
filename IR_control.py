@@ -32,7 +32,6 @@ import time
 import logging
 
 import subprocess  # for shell action
-import requests  # for geturl action
 import config  # loads the configuration from the config file.
 
 
@@ -133,32 +132,11 @@ class Interactor(IR_Control):
     def perform_action(self, action_name):
         if (action_name not in self.ir_actions):
             return
+        self.log.info("Action found for {}.".format(action_name))
         action = self.ir_actions[action_name]
 
-        self.log.info("Action {}".format(action))
-
-        # the shell action; call it non blocking catch all errors
-        if (action["type"] == "shell"):
-            def quietly_call(*arg):
-                try:
-                    subprocess.Popen(*arg, shell=True)
-                except (OSError, ValueError) as e:
-                    self.log.warn("Error: {}".format(str(e)))
-            threading.Timer(0, quietly_call, [action["call"]]).start()
-
-        # GET method on an url.
-        if (action["type"] == "get_url"):
-            def quietly_get(args):
-                try:
-                    res = requests.get(*args)
-                except requests.exceptions.RequestException as e:
-                    self.log.warn("Error: {}".format(str(e)))
-            # call it in a non-blocking manner...
-            threading.Timer(0, quietly_get, [action["arguments"]]).start()
-
-        # send another IR command.
-        if (action["type"] == "ir_send"):
-            self.send_ir_by_name(action["ir_name"])
+        # call the action, with the interactor and action_name argument.
+        action(self, action_name)
 
     # send an IR code by name.
     def send_ir_by_name(self, name):
@@ -172,6 +150,57 @@ class Interactor(IR_Control):
         cmd = str(cmd, 'ascii')
         self.log.debug("Incoming command: {}".format(cmd))
         self.send_ir_by_name(cmd)
+        # self.perform_action(cmd)
+
+
+# factory function to perform subprocess.popen in a separate thread.
+def action_shell(*args, **kwargs):
+    def tmp(interactor, action_name):
+        def quietly_call():
+            try:
+                subprocess.Popen(*args, **kwargs)
+            except (OSError, ValueError) as e:
+                interactor.log.warn("Error: {}".format(str(e)))
+        threading.Timer(0, quietly_call).start()
+    return tmp
+
+
+# factory function to output text via the logger.
+def action_log(*args, level=logging.INFO, **kwargs):
+    def tmp(interactor, action_name):
+        interactor.log.log(level, *args, **kwargs)
+    return tmp
+
+
+# factory function to use the requests module's get method.
+def action_get(*args, **kwargs):
+    try:
+        import requests  # for geturl action
+    except ImportError as e:
+        return action_log("Could not perform GET, requests module is missing. "
+                          "Ensure that it is available before using the get "
+                          "action. (Request {} not performed.)".format(args),
+                          level=logging.ERROR)
+
+    def tmp(interactor, action_name):
+        def quietly_get():
+            try:
+                res = requests.get(*args, **kwargs)
+            except requests.exceptions.RequestException as e:
+                interactor.log.warn("Error: {}".format(str(e)))
+        # call it in a non-blocking manner...
+        threading.Timer(0, quietly_get).start()
+    return tmp
+
+
+# factory function to send out another IR code.
+def action_ir(name_or_code):
+    def tmp(interactor, action_name):
+        if (type(name_or_code) == str):
+            interactor.send_ir_by_name(name_or_code)
+        else:
+            interactor.send_ir(name_or_code)
+    return tmp
 
 
 class TCPCommandHandler(socketserver.StreamRequestHandler):
