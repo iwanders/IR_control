@@ -31,8 +31,6 @@ import threading
 import time
 import logging
 
-from . import config  # loads the configuration from the config file.
-
 
 class IR_Control:
     def __init__(self, interface, serial_port, baudrate):
@@ -40,10 +38,14 @@ class IR_Control:
         self.serial_port = serial_port
         self.baudrate = baudrate
         self.log = logging.getLogger("IR_Control")
+        self.running = True
+
+    def stop(self):
+        self.running = False
 
     # blocks reading from serial port and acting appropriately.
     def loop(self):
-        while(True):
+        while(self.running):
             if (not self.i.is_serial_connected()):
                 self.log.error("No serial port!")
                 self.i.connect(self.serial_port, self.baudrate)
@@ -89,30 +91,21 @@ class IR_Control:
 class Interactor(IR_Control):
     def __init__(self, *args, **kwargs):
         super(Interactor, self).__init__(*args, **kwargs)
-        self.load_config()
         self.log = logging.getLogger("Interactor")
 
-    # load the config, and convert it into the code and name lookup lists.
-    def load_config(self):
-        by_name = {}
-        by_code = {}
+    def load_config(self, conf):
+        self.ir_by_name = {}
+        self.ir_by_code = {}
 
-        # recursive function to walk over the configuration and flatten it.
-        def R(d, *args):
-            for j in d:
-                if (type(j) != str):
-                    by_name["_".join(list(args[::-1]) + [d[j]])] = j
-                    by_code[j.tuple()] = "_".join(list(args[::-1]) + [d[j]])
-                else:
-                    R(d[j], j, *args)
-        R(config.ir_codes)
-
-        # store lookup for name -> ir_code and ir_code -> name.
-        self.ir_by_name = by_name
-        self.ir_by_code = by_code
+        ir_codes = conf.get_codes()
+        for code in ir_codes:
+            name = ir_codes[code]
+            # store lookup for name -> ir_code and ir_code -> name.
+            self.ir_by_name[name] = code
+            self.ir_by_code[code.tuple()] = name
 
         # store actions per name.
-        # self.ir_actions = config.ir_actions
+        self.ir_actions = conf.get_actions()
 
     # called when an ir code is received from the serial port.
     def ir_received(self, ir_code):
@@ -164,8 +157,7 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         self.mcu_manager_ = manager
 
 
-def start():
-
+def start(conf):
     parser = argparse.ArgumentParser(description="Control MCU at serial port.")
     parser.add_argument('--serial', '-s', help="The serial port to use.",
                         default="/dev/ttyUSB0")
@@ -212,6 +204,7 @@ def start():
 
     # start the Interactor 'glue' object.
     m = Interactor(a, serial_port=args.serial, baudrate=args.baudrate)
+    m.load_config(conf)
 
     # This is only for the TCP server to facilitate sending IR codes from the
     # terminal easily.
@@ -222,4 +215,9 @@ def start():
     server_thread.start()
 
     # loop the IR_Control object such that the correct actions are performed
-    m.loop()
+    try:
+        m.loop()
+    except KeyboardInterrupt as e:
+        m.stop()
+        a.stop()
+        logger_IR_control.error("Received interrupt signal, stopping.")

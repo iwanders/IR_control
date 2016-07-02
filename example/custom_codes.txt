@@ -1,0 +1,12 @@
+
+SONY 12 0x00000481 amp_volume_up
+SONY 12 0x00000C81 amp_volume_down
+
+NEC 32 0x20DF8E71 tv_green
+NEC 32 0x20DF4EB1 tv_red
+NEC 32 0x20DF8679 tv_blue
+NEC 32 0x20DFC639 tv_yellow
+NEC 32 0x20DF10EF tv_standby
+NEC 32 0x20DF40BF tv_volup
+
+

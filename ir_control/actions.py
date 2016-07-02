@@ -25,19 +25,21 @@
 
 import logging
 import subprocess  # for shell action
+import threading
 
 
 # factory function to perform subprocess.popen in a separate thread.
 def shell(*args, **kwargs):
-    kwarguments = {'shell':True}
+    kwarguments = {'shell': True}
     kwarguments.update(kwargs)
+
     def tmp(interactor, action_name):
         def quietly_call():
             try:
                 subprocess.Popen(*args, **kwarguments)
             except (OSError, ValueError) as e:
                 interactor.log.warn("Error: {}".format(str(e)))
-        threading.Timer(0, quietly_call).start()
+        threading.Thread(target=quietly_call).start()
     return tmp
 
 
@@ -65,7 +67,7 @@ def webhook(*args, **kwargs):
             except requests.exceptions.RequestException as e:
                 interactor.log.warn("Error: {}".format(str(e)))
         # call it in a non-blocking manner...
-        threading.Timer(0, quietly_get).start()
+        threading.Thread(target=quietly_call).start()
     return tmp
 
 
@@ -77,4 +79,3 @@ def emit(name_or_code):
         else:
             interactor.send_ir(name_or_code)
     return tmp
-
