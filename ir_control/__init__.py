@@ -22,8 +22,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from interface import SerialInterface
-import message
+from .interface import SerialInterface
+from . import message
 
 import socketserver
 import argparse
@@ -31,8 +31,7 @@ import threading
 import time
 import logging
 
-import subprocess  # for shell action
-import config  # loads the configuration from the config file.
+from . import config  # loads the configuration from the config file.
 
 
 class IR_Control:
@@ -113,7 +112,7 @@ class Interactor(IR_Control):
         self.ir_by_code = by_code
 
         # store actions per name.
-        self.ir_actions = config.ir_actions
+        # self.ir_actions = config.ir_actions
 
     # called when an ir code is received from the serial port.
     def ir_received(self, ir_code):
@@ -153,56 +152,6 @@ class Interactor(IR_Control):
         # self.perform_action(cmd)
 
 
-# factory function to perform subprocess.popen in a separate thread.
-def action_shell(*args, **kwargs):
-    def tmp(interactor, action_name):
-        def quietly_call():
-            try:
-                subprocess.Popen(*args, **kwargs)
-            except (OSError, ValueError) as e:
-                interactor.log.warn("Error: {}".format(str(e)))
-        threading.Timer(0, quietly_call).start()
-    return tmp
-
-
-# factory function to output text via the logger.
-def action_log(*args, level=logging.INFO, **kwargs):
-    def tmp(interactor, action_name):
-        interactor.log.log(level, *args, **kwargs)
-    return tmp
-
-
-# factory function to use the requests module's get method.
-def action_get(*args, **kwargs):
-    try:
-        import requests  # for geturl action
-    except ImportError as e:
-        return action_log("Could not perform GET, requests module is missing. "
-                          "Ensure that it is available before using the get "
-                          "action. (Request {} not performed.)".format(args),
-                          level=logging.ERROR)
-
-    def tmp(interactor, action_name):
-        def quietly_get():
-            try:
-                res = requests.get(*args, **kwargs)
-            except requests.exceptions.RequestException as e:
-                interactor.log.warn("Error: {}".format(str(e)))
-        # call it in a non-blocking manner...
-        threading.Timer(0, quietly_get).start()
-    return tmp
-
-
-# factory function to send out another IR code.
-def action_ir(name_or_code):
-    def tmp(interactor, action_name):
-        if (type(name_or_code) == str):
-            interactor.send_ir_by_name(name_or_code)
-        else:
-            interactor.send_ir(name_or_code)
-    return tmp
-
-
 class TCPCommandHandler(socketserver.StreamRequestHandler):
     def handle(self):
         data = self.request.recv(1024).strip()
@@ -215,7 +164,7 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         self.mcu_manager_ = manager
 
 
-if __name__ == "__main__":
+def start():
 
     parser = argparse.ArgumentParser(description="Control MCU at serial port.")
     parser.add_argument('--serial', '-s', help="The serial port to use.",

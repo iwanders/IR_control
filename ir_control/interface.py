@@ -33,7 +33,7 @@ import threading
 import time
 import queue
 
-import message
+from . import message
 
 logger = logging.getLogger(__name__)
 

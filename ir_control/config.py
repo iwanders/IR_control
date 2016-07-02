@@ -1,5 +1,5 @@
-from message import IR
-from IR_control import action_shell, action_get, action_ir, action_log
+from .message import IR
+# from .__init__ import action_shell, action_get, action_ir, action_log
 """
     Maps IR codes to names, when receiving, several codes can point to the same
     name. Sending to a name with multiple ir codes associated to it sends one
@@ -87,46 +87,3 @@ ir_codes = {
     }
 }
 
-"""
-    Action to perform when a IR code is received. Type defines what to do.
-
-    Every action should be a callable, it is provided with two arguments, the
-    first is the interactor (the IR_control subclass) and the second is the
-    name of the action for which it was invoked.
-
-    If you use your own functions, be sure that they catch any exceptions as
-    these are not handled when the function is called.
-
-    The following actions are available by default:
-
-        - action_shell: calls subprocess.Popen(*args, **kwargs) in a separate
-                        thread.
-                        example: action_shell("mpc next", shell=True)
-
-        - action_get: requests.get(*args, **kwargs) in a separate thread. This
-                      requires the requests module to be available!
-                      example: action_get("http://127.0.0.1:8080/next")
-
-        - action_ir: This sends the IR signal by the code or name specified.
-                     example: action_ir("samsung_tv_standby"),
-
-        - action_log: interactor.log.log(level, *args, **kwargs), prints via
-                      the logger. Examples:
-                      action_log("Hi, I pressed a key!") # This prints at level
-                        logging.INFO
-                      action_log("Hi, I pressed a key!", level=logging.ERROR)
-                        # This prints at logging.ERROR, so also visible without
-                        # verbose mode.
-"""
-ir_actions = {
-    "multi_tv_blue": action_shell("/home/c35pp/.local/bin/wpc next", shell=True),
-    "multi_tv_yellow": action_shell("/home/c35pp/.local/bin/wpc prev", shell=True),
-    "multi_tv_red": action_shell("/home/c35pp/.local/bin/wpc downvote", shell=True),
-    "multi_tv_green": action_shell("/home/c35pp/.local/bin/wpc upvote", shell=True),
-
-    "multi_tv_standby": action_ir("samsung_tv_standby"),
-    "samsung_tv_volup": action_ir("multi_amp_volup"),
-    "samsung_tv_voldown": action_ir("multi_amp_voldown"),
-
-    "multi_tv_volup": action_get("http://127.0.0.1:8080/next"),
-}
