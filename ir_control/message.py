@@ -102,11 +102,17 @@ def ir_print(self):
         repr(IR_type_name.get(self.type, self.type)), self.bits, self.value)
 
 
+def config_print(self):
+    return '{} {} 0x{:0>8X}'.format(IR_type_name.get(self.type, self.type),
+                                    self.bits, self.value)
+
+
 def to_tuple(self):
     return (IR_type_id.get(self.type, self.type), self.bits, self.value)
 
 IR.raw = mapping_to_raw
 IR.tuple = to_tuple
+IR.config_print = config_print
 IR.__str__ = ir_print
 
 

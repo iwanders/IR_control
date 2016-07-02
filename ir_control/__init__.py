@@ -116,8 +116,8 @@ class Interactor(IR_Control):
             # try to perform the action:
             self.perform_action(ir_name)
         else:
-            self.log.debug("IR code not known: {}".format(
-                           ir_code))
+            self.log.debug("IR code not known:\n{}".format(
+                           ir_code.config_print()))
 
     # When an IR code is received and we have a name for this, this performs
     # the action associated to that name.
