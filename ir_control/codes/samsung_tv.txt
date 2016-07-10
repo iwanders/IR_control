@@ -1,5 +1,5 @@
 # These codes were recorded from a remote for a Samsung TV bought in 2016.
-@preset samsung_tv_
+@prefix samsung_tv_
 SAMSUNG 32 0xE0E040BF standby
 SAMSUNG 32 0xE0E0807F source
 SAMSUNG 32 0xE0E020DF key_1

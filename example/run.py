@@ -18,14 +18,14 @@ conf = Configurator()
         Example:
 
             # These codes were recorded from a Samsung TV bought in 2016.
-            @preset samsung_tv_
+            @prefix samsung_tv_
             SAMSUNG 32 0xE0E040BF standby
             ...
 
         Explanation:
             # Denotes a comment.
-            @ Is a special key value entry, only preset is used and provides
-              a default preset for the entire file. This default preset can be
+            @ Is a special key value entry, only prefix is used and provides
+              a default prefix for the entire file. This default prefix can be
               overruled when the file is loaded.
 
             The IR codes are written one per line, values separated by space:
@@ -37,7 +37,7 @@ conf = Configurator()
     The name is used to check if an action is to be performed.
 """
 
-conf.load_codes('custom_codes.txt', preset="multi_")
+conf.load_codes('custom_codes.txt', prefix="multi_")
 conf.load_codes('samsung_tv')
 
 # conf.print_codes()
@@ -79,7 +79,7 @@ conf.action("multi_tv_green", shell("/home/c35pp/.local/bin/wpc upvote"))
 conf.action("multi_tv_standby", emit("samsung_tv_standby"))
 conf.action("samsung_tv_volume_up", emit("multi_amp_volup"))
 conf.action("samsung_tv_volume_down", emit("multi_amp_voldown"))
-conf.action("multi_tv_volume_up", webhook("http://127.0.0.1:8080/next"))
+# conf.action("multi_tv_volume_up", webhook("http://127.0.0.1:8080/next"))
 
 # finally, start the ir control program with this configuration, this also
 # handles the argument parsing etc.

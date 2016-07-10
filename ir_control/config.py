@@ -16,14 +16,14 @@ def perror(a):
         Example:
 
             # These codes were recorded from a Samsung TV bought in 2016.
-            @preset samsung_tv_
+            @prefix samsung_tv_
             SAMSUNG 32 0xE0E040BF standby
             ...
 
         Explanation:
             # Denotes a comment.
-            @ Is a special key value entry, only preset is used and provides
-              a default preset for the entire file. This default preset can be
+            @ Is a special key value entry, only prefix is used and provides
+              a default prefix for the entire file. This default prefix can be
               overruled when the file is loaded.
 
             The IR codes are written one per line, values separated by space:
@@ -36,7 +36,7 @@ def perror(a):
         conf = Configurator()
 
         # Include a file in the current directory, prefix the names:
-        conf.load_codes('custom_codes.txt', preset="multi_")
+        conf.load_codes('custom_codes.txt', prefix="multi_")
 
         # Or load with the default prefix from the file in the module folder:
         conf.load_codes('samsung_tv')
@@ -54,11 +54,11 @@ class Configurator():
         self.ir_codes = {}
         self.ir_actions = {}
 
-    def load_codes(self, path, preset=None):
+    def load_codes(self, path, prefix=None):
         # try in the current folder.
         if (os.path.isfile(path)):
             codes, special = self._load_code_file(path)
-            self._add_codes(codes, special, preset)
+            self._add_codes(codes, special, prefix)
             return
 
         # try in the 'codes' folder of the module.
@@ -70,7 +70,7 @@ class Configurator():
 
         if (os.path.isfile(try_path)):
             codes, special = self._load_code_file(try_path)
-            self._add_codes(codes, special, preset)
+            self._add_codes(codes, special, prefix)
             return
         perror("Could not find code file: {}".format(path))
 
@@ -131,15 +131,15 @@ class Configurator():
 
         return codes, special
 
-    def _add_codes(self, codes, special, preset):
-        # determine the real preset
-        if (preset is None) and ("preset" in special):
-            preset = special["preset"]
-        elif (preset is None):
-            preset = ""
+    def _add_codes(self, codes, special, prefix):
+        # determine the real prefix
+        if (prefix is None) and ("prefix" in special):
+            prefix = special["prefix"]
+        elif (prefix is None):
+            prefix = ""
         for code in codes:
             name = codes[code]
-            ir_name = preset + name
+            ir_name = prefix + name
             if code in self.ir_codes:
                 print("Duplicate IR code, now resolves to {}".format(ir_name))
             self.ir_codes[code] = ir_name
