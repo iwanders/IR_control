@@ -1,0 +1,2 @@
+pyserial==3.1.1
+wheel==0.26.0
