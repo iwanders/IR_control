@@ -114,6 +114,9 @@ IR.raw = mapping_to_raw
 IR.tuple = to_tuple
 IR.config_print = config_print
 IR.__str__ = ir_print
+IR.IR_type = IR_type
+IR.IR_type_name = IR_type_name
+IR.IR_type_id = IR_type_id
 
 
 #############################################################################

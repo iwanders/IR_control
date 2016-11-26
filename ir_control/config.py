@@ -131,6 +131,11 @@ class Configurator():
 
         return codes, special
 
+    def add_code(self, ir_name, code):
+        if code in self.ir_codes:
+            print("Duplicate IR code, now resolves to {}".format(ir_name))
+        self.ir_codes[code] = ir_name
+
     def _add_codes(self, codes, special, prefix):
         # determine the real prefix
         if (prefix is None) and ("prefix" in special):
@@ -140,9 +145,7 @@ class Configurator():
         for code in codes:
             name = codes[code]
             ir_name = prefix + name
-            if code in self.ir_codes:
-                print("Duplicate IR code, now resolves to {}".format(ir_name))
-            self.ir_codes[code] = ir_name
+            self.add_code(ir_name, code)
 
     def print_codes(self):
         for j in self.ir_codes:
