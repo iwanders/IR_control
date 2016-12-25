@@ -107,7 +107,7 @@ class SerialInterface(threading.Thread):  # Also known as 'SerialMan!'.
                 else:
                     logging.warn("Received incomplete packet "
                                  " discarded ({}).".format(buffer))
-        except (serial.SerialException, OSError) as e:
+        except (serial.SerialException, OSError, IOError) as e:
             self.ser.close()
             self.ser = None
 
